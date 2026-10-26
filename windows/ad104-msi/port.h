@@ -4,10 +4,62 @@
 #include <Protocol/DevicePath.h>
 #include <stddef.h>
 
-#define GU_BOARD_ID 0x278210deU
-#define GU_BOARD_SUBSYSTEM 0x51321462U
-#define GU_BAR0_BASE 0x80000000ULL
+/* ---- Hardware-profile selection ----
+ * Select a profile at compile time:
+ *   -DGPU_PROFILE_AD102_RTX4090        RTX 4090        10de:2684
+ *   -DGPU_PROFILE_AD103_RTX4070TIS     RTX 4070 Ti S   10de:2705
+ *   -DGPU_PROFILE_AD104_RTX4070TI_MSI  RTX 4070 Ti     10de:2782  (default)
+ * or manual:
+ *   -DGPU_PROFILE_PCI_DEVICE=0x2684 -DGPU_PROFILE_SUBSYSTEM=0xXXXXXXXX
+ *
+ * A profile only decides which card family the admission checks expect; it
+ * never disables them. Every new board still needs its own captured profile
+ * (see profiles/*.h and docs/PORTING-GUIDE.md). */
+#if   defined(GPU_PROFILE_AD102_RTX4090)
+#define GPU_PROFILE_PCI_VENDOR   0x10deU
+#define GPU_PROFILE_PCI_DEVICE   0x2684U
+#define GPU_PROFILE_SUBSYSTEM    0x00000000U  /* TODO: capture your subsystem */
+#define GPU_PROFILE_BAR0_BASE    0x00000004U
+#elif defined(GPU_PROFILE_AD103_RTX4070TIS)
+#define GPU_PROFILE_PCI_VENDOR   0x10deU
+#define GPU_PROFILE_PCI_DEVICE   0x2705U
+#define GPU_PROFILE_SUBSYSTEM    0x00000000U  /* TODO: capture your subsystem */
+#define GPU_PROFILE_BAR0_BASE    0x00000004U
+#elif defined(GPU_PROFILE_AD104_RTX4070TI_MSI)
+#define GPU_PROFILE_PCI_VENDOR   0x10deU
+#define GPU_PROFILE_PCI_DEVICE   0x2782U
+#define GPU_PROFILE_SUBSYSTEM    0x51321462U
+#define GPU_PROFILE_BAR0_BASE    0x00000004U
+#else
+/* Default: the only end-to-end validated Windows profile. */
+#define GPU_PROFILE_AD104_RTX4070TI_MSI 1
+#define GPU_PROFILE_PCI_VENDOR   0x10deU
+#define GPU_PROFILE_PCI_DEVICE   0x2782U
+#define GPU_PROFILE_SUBSYSTEM    0x51321462U
+#define GPU_PROFILE_BAR0_BASE    0x00000004U
+#endif
+
+/* Manual override / fallback */
+#ifdef GPU_PROFILE_PCI_DEVICE
+#undef  GU_BOARD_ID
+#define GU_BOARD_ID   (((UINT32)GPU_PROFILE_PCI_DEVICE << 16) | (UINT32)GPU_PROFILE_PCI_VENDOR)
+#endif
+#ifdef GPU_PROFILE_SUBSYSTEM
+#undef  GU_BOARD_SUBSYSTEM
+#define GU_BOARD_SUBSYSTEM (UINT32)GPU_PROFILE_SUBSYSTEM
+#endif
+#ifndef GU_BOARD_ID
+#define GU_BOARD_ID   (((UINT32)GPU_PROFILE_PCI_DEVICE << 16) | (UINT32)GPU_PROFILE_PCI_VENDOR)
+#endif
+#ifndef GU_BOARD_SUBSYSTEM
+#define GU_BOARD_SUBSYSTEM (UINT32)GPU_PROFILE_SUBSYSTEM
+#endif
+#ifndef GU_BAR0_BASE
+#define GU_BAR0_BASE  0x80000000ULL
+#endif
+#ifndef GU_DEVICE_MEMORY_SIZE
 #define GU_DEVICE_MEMORY_SIZE 0x2ffaU
+#endif
 /* The default artifact is read-only. Legacy host containment tests are never
    a production enable switch; experimental firmware requires its own define. */
 #if defined(GU_AD104_HOST_TEST) && __STDC_HOSTED__ != 1

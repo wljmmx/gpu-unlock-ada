@@ -15,6 +15,7 @@
 #include <linux/timekeeping.h>
 
 #include "diagnostic.h"
+#include "arch_610.h"
 #include "aperture_compat.h"
 #include "gfw_eval.h"
 #include "prep_610.h"
@@ -74,9 +75,9 @@ static const struct gpu_unlock_assets *unlock_assets(const struct pci_dev *pdev)
 		.arch = GU_BOOTER_AD10X, .boot_image_size = 36864,
 	};
 
-	return (pdev->device == GU_AD102_RTX_4090 ||
-		pdev->device == GU_AD103_RTX_4070_TI_SUPER ||
-		pdev->device == 0x2782u) ? &ad102 : &ga102;
+	/* Every Ada-series card shares the AD102-family booter and V67 payload;
+	 * RTX 30-series (GA10x) cards keep the separate ga102 asset set. */
+	return gpu_unlock_is_ada_pci(pdev->device) ? &ad102 : &ga102;
 }
 
 /* The two falcons this module ever touches. SEC2 is the secure boot engine
@@ -323,11 +324,9 @@ static bool inaccessible(u32 value)
 
 static bool is_ad102(const struct unlock_transaction_work *work)
 {
-	/* AD103 uses the same pinned AD102-family Booter archive. Hardware
-	 * behavior on 0x2705 still requires an exact-card canary. */
-	return work->pdev->device == GU_AD102_RTX_4090 ||
-	       work->pdev->device == GU_AD103_RTX_4070_TI_SUPER ||
-	       work->pdev->device == 0x2782u;
+	/* All Ada-series PCI devices share the AD102-family Booter archive and
+	 * the same speed-selector unlock path. Name kept for brevity. */
+	return gpu_unlock_is_ada_pci(work->pdev->device);
 }
 
 static const struct {
@@ -1709,7 +1708,7 @@ static int unlock_transaction_reset(struct unlock_transaction_work *work)
 
 int gpu_unlock_610_load_shared(struct pci_dev *pdev, struct gpu_unlock_610_shared *shared)
 {
-	if (!pdev || pdev->vendor!=0x10de || pdev->device!=0x2782 || !GuAd104AssetsValid()) return -ENODEV;
+	if (!pdev || pdev->vendor!=0x10de || !gpu_unlock_is_ada_pci(pdev->device) || !GuAd104AssetsValid()) return -ENODEV;
 	return request_scoped(&pdev->dev, &shared->gsp, unlock_assets(pdev)->gsp);
 }
 
@@ -1727,7 +1726,7 @@ int gpu_unlock_610_unlock(struct pci_dev *pdev, const struct gpu_unlock_610_shar
     /* No EFI application calls this library yet. A future ownership adapter
      * must prove exclusive release of GOP, console and all active consumers. */
     if (Gu.transaction_attempted) return -EALREADY;
-    if (!pdev || pdev->vendor!=0x10de || pdev->device!=0x2782 ||
+    if (!pdev || pdev->vendor!=0x10de || !gpu_unlock_is_ada_pci(pdev->device) ||
         !shared || shared->gsp!=&GuAssets[2].firmware || !GuAd104AssetsValid() ||
         !Gu.prom_verified || !Gu.profile_verified || !Gu.owned || !Gu.armed ||
         !Gu.display_ok || !Gu.display_check || !Gu.display_check() || Gu.fault ||
