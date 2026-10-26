@@ -15,13 +15,20 @@
 #define PROFILE_PCI_DEVICE   0x2684   /* RTX 4090; 0x2685 for 4090 D */
 #define PROFILE_PCI_SUBSYSTEM 0x00000000  /* TODO: lspci -vv | grep Subsystem */
 
-#define PROFILE_BAR0_BASE       0x00000004u
-#define PROFILE_BAR0_SIZE_BYTES (64u * 1024u * 1024u)  /* 64 MiB */
+/* BAR0 aperture as assigned by this board's firmware. 0x80000000 is what the
+ * MSI 4070 Ti reference saw; a 4090 boot may assign something else, so capture
+ * your own value instead of assuming. */
+#define PROFILE_BAR0_BASE       0x80000000ULL   /* TODO: verify on your board */
+#define PROFILE_BAR0_SIZE_BYTES 0x01000000u     /* TODO: verify (16 MiB assumed) */
 #define PROFILE_PCI_COMMAND_EXPECTED 0x0003u
 
-/* ---- FWSEC geometry (parsed from the board ROM; reference values) ----
- * Confirm with the diagnostic probe or by parsing your own ROM. */
-#define PROFILE_FWSEC_IMAGE_OFF      0x045488u
+/* ---- FWSEC geometry ----
+ * Mirrors the AD104 pins; the AD102 report only states the DMEM length
+ * (0xd80). Confirm every field by parsing your own ROM:
+ *   sudo ./tools/capture_ad102_cold.py            (prints the parsed line and
+ *                                                  writes a filled profile)
+ * or windows/ad104-msi/tools/fwsec_inspect.c against your dump. */
+#define PROFILE_FWSEC_IMAGE_OFF      0x045488u   /* TODO: confirm on your VBIOS */
 #define PROFILE_FWSEC_IMAGE_SIZE     0x010300u
 #define PROFILE_FWSEC_IMEM_PA        0x00000000u
 #define PROFILE_FWSEC_IMEM_SIZE      0x00f500u
@@ -38,11 +45,20 @@
 #define PROFILE_FWSEC_SIG_OFF        0x045188u
 #define PROFILE_FWSEC_SIG_BYTES      768u
 
-/* ---- Cold-entry BAR0 values (AD102 reference; verify on your board) ---- */
+/* ---- Cold-entry BAR0 values ----
+ * The published AD102 cold words are pinned below. GFW_PLM / GFW_BOOT /
+ * GFW_CPUCTL are marked TODO: the 4090 evidence only exposes them through the
+ * gpu_peek summary predicates (gfw_plm_level0=1, boot_completed=1,
+ * falcon_halted=1), not as literal words.
+ *
+ * NOTE: windows/ad104-msi/profile.c Registers() carries the authoritative
+ * 19-word admission table as static arrays; this header alone is not enough
+ * for a new board. tools/capture_ad102_cold.py emits the arrays from your own
+ * capture as cold-entry.txt. */
 #define PROFILE_PMC_BOOT_0_REF      0x192000a1u   /* AD102 chip ID */
-#define PROFILE_GFW_BOOT            0x00000000u
-#define PROFILE_GFW_PLM             0x000003ffu
-#define PROFILE_GFW_CPUCTL          0x00000010u
+#define PROFILE_GFW_BOOT            0x00000000u   /* TODO: capture literal */
+#define PROFILE_GFW_PLM             0x000003ffu   /* TODO: capture literal */
+#define PROFILE_GFW_CPUCTL          0x00000010u   /* TODO: capture literal */
 #define PROFILE_WPR_LO_EXPECTED     0x1ffffe00u
 #define PROFILE_WPR_HI_EXPECTED     0x00000000u
 #define PROFILE_WPR_CFG_PLM_COLD    0x0004cb8fu

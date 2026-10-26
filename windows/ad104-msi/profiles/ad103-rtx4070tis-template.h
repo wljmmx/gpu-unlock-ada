@@ -12,8 +12,8 @@
 #define PROFILE_PCI_DEVICE    0x2705
 #define PROFILE_PCI_SUBSYSTEM 0x00000000u  /* TODO */
 
-#define PROFILE_BAR0_BASE       0x00000004u
-#define PROFILE_BAR0_SIZE_BYTES (64u * 1024u * 1024u)
+#define PROFILE_BAR0_BASE       0x80000000ULL   /* TODO: capture on your board */
+#define PROFILE_BAR0_SIZE_BYTES 0x01000000u     /* TODO: verify (16 MiB assumed) */
 #define PROFILE_PCI_COMMAND_EXPECTED 0x0003u
 
 /* TODO: FWSEC geometry + cold-entry BAR0 values from your board */

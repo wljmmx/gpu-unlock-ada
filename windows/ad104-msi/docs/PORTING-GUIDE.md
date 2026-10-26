@@ -43,6 +43,18 @@ Ways to get a pre-driver window:
 - Linux with the NVIDIA modules blacklisted on the kernel command line:
   `modprobe.blacklist=nvidia,nvidia_drm,nvidia_modeset,nvidia_uvm,nvidia_peermem`
 - The read-only probe in `src/diagnostic/` (how the MSI 4070 Ti capture was done)
+- `tools/capture_ad102_cold.py` at the repo root (RTX 4090 / AD102): builds and
+  loads `diagnostics/peek/gpu_peek.ko`, parses its output, dumps PCI config
+  space and the ROM, and writes a filled `profile.h` plus the 19-word
+  admission table. It refuses a warm read unless `--allow-warm` is passed.
+
+```bash
+sudo ./tools/capture_ad102_cold.py -d 0000:01:00.0 -o captures/4090
+# replay a saved log instead (no root, no module):
+./tools/capture_ad102_cold.py --from-dmesg saved.log
+```
+
+For a non-4090 card the same data can be read by hand:
 
 ```bash
 BDF=01:00.0
@@ -57,6 +69,12 @@ done
 ```
 
 Copy the readbacks into your profile. Do not guess.
+
+The authoritative admission table is **not** the `profiles/*.h` header: it is
+the `offsets[]` / `values[]` pair inside `windows/ad104-msi/profile.c` that
+`Registers()` walks, plus the PCI config words asserted in `Config()`. A new
+board needs those arrays replaced too; the capture tool writes them out as
+`cold-entry.txt`.
 
 ## Step 3 — VBIOS ROM and hash
 

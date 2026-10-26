@@ -14,8 +14,10 @@
 #define PROFILE_PCI_DEVICE    0x2782
 #define PROFILE_PCI_SUBSYSTEM 0x51321462u
 
-#define PROFILE_BAR0_BASE       0x00000004u
-#define PROFILE_BAR0_SIZE_BYTES (16u * 1024u * 1024u)  /* 16 MiB */
+/* BAR0 is firmware-assigned (0x80000000 on the reference Z490 board) and is
+ * checked by profile.c Config(): Gu.bar_base==GU_BAR0_BASE. */
+#define PROFILE_BAR0_BASE       0x80000000ULL
+#define PROFILE_BAR0_SIZE_BYTES 0x01000000u  /* 16 MiB, as Config() asserts */
 #define PROFILE_PCI_COMMAND_EXPECTED 0x0003u
 
 /* FWSEC geometry */

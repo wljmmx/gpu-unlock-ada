@@ -31,6 +31,8 @@ Module.symvers
 /windows/ad104-msi/build/
 /windows/ad104-msi/local/
 /windows/ad104-msi/diagnostic/build/
+# tools/capture_ad102_cold.py output: contains a board-unique VBIOS dump
+/captures/
 *.EFI
 *.efi
 *.exe
